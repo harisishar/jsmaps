@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prohub Extend</title>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.min.js" integrity="sha384-BBtl+eGJRgqQAUMxJ7pMwbEyER4l1g+O15P+16Ep7Q9Q+zqX6gSbd85u4mG4QzX+" crossorigin="anonymous"></script>
+
+</head>
+<body>
+    <div class="container">
+        <h1>Places Finder - Prohub Extendad</h1>
+        <div id="map"> </div>
+        <div class="form-group"> 
+            <label for="location">Enter Location</label>    
+            <br>
+            <input type="text" class="form-control" id="autocomplet" placeholder="Enter Location">
+        </div>
+        <br>
+        <div class="form-group">
+            <label for="type">Select Category:</label>
+            <br>
+            <select class="form-control" name="" id="type">
+                <option id='train_station'> train station</option>
+                <option id='supermarket'> supermarket</option>
+                <option id='school'> school</option>
+                <option id='atm'> Atm</option>
+                <option id='bank'> Bank</option>
+                <option id='bus_station'> Bus Station</option>
+            
+            </select>
+
+        </div>
+
+        <br><br>
+        <table class="table table-bordered table-striped" id="places"></table>
+    </div>
+
+</body>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBLAF6_wOdekJV6FX5DeF81yUnu4EXl_HY&libraries=places&callback-initMap"async defer> </script>
+    <script>
+        function initMap() {
+            autocomplete = new googl.maps.plces.Autocomplete ((document.getElementById ('autocomplete')),
+            {
+                type: ['geocode']
+            })
+   
+        }
+            autocomplete.addListener ('place_change', searchNearbyPlaces)
+        
+        //call searchNearbyPlaces function when change input location
+        document.getElementById('type').onchange = searchNearbyPlaces
+
+            function searchNearbyPlaces()
+            {
+
+                document.getElementById('places').innerHTML = ''
+                var place = autocomplete.getPlace ()
+                console.log(place)
+
+                map = new google.maps.Map(document.getElementById('map'), {
+                    center:place.geometry.location,
+                    zoom:15
+                });
+
+                service = new google.maps.places.PlaceService(map);
+                    service.nearbySearch ({
+                        location: place.geometry.location,
+                        radius: '500',
+                        type: [document.getElementById('type').value]
+                    }, callback);
+
+                function callback(results, status){
+                    if (status === google.maps.places.PlaceServiceStatus.OK)
+                        console.log (results.length)
+                    for (var i = 0; i< results.length; i++){
+                        createMaker(results[i]);
+                    }
+
+                }
+            }
+
+            function createMaker(place) {
+                console.log(place)
+                var table = document.getElementById("places");
+                var row = table.insertRow();
+                var cell1 = row.insertCell(0);
+                cell1.innerHTML = place.name;
+                    if(place.photos){
+                        let photoUrl = place.photo [0].getUrl();
+                        let cell2 = row.insertCell(1)
+                        cell2.innerHTML = `<img width = "auto" height = "300" src="${photUrl}"/>`
+                    } else{
+                        let photoUrl = "https://via.placeholder.com/150"
+                        let cell2 = row.insertCell(1)
+                        cell2.innerHTML = `<img width= "auto" height = "300" src="${photUrl}"/>`
+                    }
+            }
+
+    </script>
+</html>
