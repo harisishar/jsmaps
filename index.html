@@ -3,99 +3,112 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Prohub Extend</title>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.min.js" integrity="sha384-BBtl+eGJRgqQAUMxJ7pMwbEyER4l1g+O15P+16Ep7Q9Q+zqX6gSbd85u4mG4QzX+" crossorigin="anonymous"></script>
-
+    <title>Places by Category</title>
+    <style>
+        #map {
+            height: 400px;
+            width: 100%;
+        }
+        #categories {
+            margin-bottom: 10px;
+        }
+        #search-box {
+            width: 200px;
+            padding: 5px;
+            margin-right: 10px;
+        }
+    </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Places Finder - Prohub Extendad</h1>
-        <div id="map"> </div>
-        <div class="form-group"> 
-            <label for="location">Enter Location</label>    
-            <br>
-            <input type="text" class="form-control" id="autocomplet" placeholder="Enter Location">
-        </div>
-        <br>
-        <div class="form-group">
-            <label for="type">Select Category:</label>
-            <br>
-            <select class="form-control" name="" id="type">
-                <option id='train_station'> train station</option>
-                <option id='supermarket'> supermarket</option>
-                <option id='school'> school</option>
-                <option id='atm'> Atm</option>
-                <option id='bank'> Bank</option>
-                <option id='bus_station'> Bus Station</option>
-            
-            </select>
-
-        </div>
-
-        <br><br>
-        <table class="table table-bordered table-striped" id="places"></table>
-    </div>
-
+    <h1>Places by Category</h1>
+    <input type="text" id="search-box" placeholder="Search by name...">
+    <select id="categories"></select>
+    <div id="map"></div>
+    <script src="script.js"></script>
+    <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBLAF6_wOdekJV6FX5DeF81yUnu4EXl_HY&callback=initMap"></script>
 </body>
-    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBLAF6_wOdekJV6FX5DeF81yUnu4EXl_HY&libraries=places&callback-initMap"async defer> </script>
-    <script>
-        function initMap() {
-            autocomplete = new googl.maps.plces.Autocomplete ((document.getElementById ('autocomplete')),
-            {
-                type: ['geocode']
-            })
-   
-        }
-            autocomplete.addListener ('place_change', searchNearbyPlaces)
+
+  <script>
+  // Replace "YOUR_API_KEY" with your actual Google Maps API key
+  const API_KEY = "AIzaSyBLAF6_wOdekJV6FX5DeF81yUnu4EXl_HY";
+
+  const mapContainer = document.getElementById("map");
+  const categoriesSelect = document.getElementById("categories");
+  const searchBox = document.getElementById("search-box");
+
+  let map;
+  let markers = [];
+
+  function initMap() {
+    map = new google.maps.Map(mapContainer, {
+      zoom: 12,
+      center: { lat: -33.8688, lng: 151.2093 }, // Replace with your desired center coordinates
+    });
+
+    // Get place categories from Google Places API
+    fetch(`https://maps.googleapis.com/maps/api/place/autocomplete/json?input=restaurant&types=establishment&key=${API_KEY}`)
+      .then(response => response.json())
+      .then(data => {
+        const options = data.predictions.map(prediction => ({
+          value: prediction.place_id,
+          text: prediction.description,
+        }));
+        options.forEach(option => {
+          const element = document.createElement("option");
+          element.value = option.value;
+          element.text = option.text;
+          categoriesSelect.appendChild(element);
+        });
+      
+        // Add event listener to handle category selection
+        categoriesSelect.addEventListener("change", onCategoryChange);
         
-        //call searchNearbyPlaces function when change input location
-        document.getElementById('type').onchange = searchNearbyPlaces
+        // Add event listener to handle search input
+        searchBox.addEventListener("keyup", onSearch);
+      })
+      .catch(error => console.error(error));
+  }
 
-            function searchNearbyPlaces()
-            {
+  function onCategoryChange() {
+    const selectedPlaceId = categoriesSelect.value;
+    clearMarkers();
 
-                document.getElementById('places').innerHTML = ''
-                var place = autocomplete.getPlace ()
-                console.log(place)
+    // Similar logic to fetch and display place details based on category
+    // ...
+  }
 
-                map = new google.maps.Map(document.getElementById('map'), {
-                    center:place.geometry.location,
-                    zoom:15
-                });
+  function onSearch() {
+    const searchTerm = searchBox.value;
+    clearMarkers();
 
-                service = new google.maps.places.PlaceService(map);
-                    service.nearbySearch ({
-                        location: place.geometry.location,
-                        radius: '500',
-                        type: [document.getElementById('type').value]
-                    }, callback);
+    // Update the API request to include the search term
+    fetch(`https://maps.googleapis.com/maps/api/place/textsearch/json?query=${searchTerm}&key=${API_KEY}`)
+      .then(response => response.json())
+      .then(data => {
+        const places = data.results;
+        places.forEach(place => {
+          const location = { lat: place.geometry.location.lat, lng: place.geometry.location.lng };
 
-                function callback(results, status){
-                    if (status === google.maps.places.PlaceServiceStatus.OK)
-                        console.log (results.length)
-                    for (var i = 0; i< results.length; i++){
-                        createMaker(results[i]);
-                    }
+          // Create marker and add to map
+          const marker = new google.maps.Marker({
+            position: location,
+            map: map,
+            title: place.name,
+          });
+          markers.push(marker);
+        });
 
-                }
-            }
+        // Center map on the first search result (adjust as needed)
+        if (places.length > 0) {
+          map.setCenter(places[0].geometry.location);
+        }
+      })
+      .catch(error => console.error(error));
+  }
 
-            function createMaker(place) {
-                console.log(place)
-                var table = document.getElementById("places");
-                var row = table.insertRow();
-                var cell1 = row.insertCell(0);
-                cell1.innerHTML = place.name;
-                    if(place.photos){
-                        let photoUrl = place.photo [0].getUrl();
-                        let cell2 = row.insertCell(1)
-                        cell2.innerHTML = `<img width = "auto" height = "300" src="${photUrl}"/>`
-                    } else{
-                        let photoUrl = "https://via.placeholder.com/150"
-                        let cell2 = row.insertCell(1)
-                        cell2.innerHTML = `<img width= "auto" height = "300" src="${photUrl}"/>`
-                    }
-            }
-
-    </script>
+  function clearMarkers() {
+    markers.forEach(marker => marker.setMap(null));
+    markers = [];
+  }
+</script>
 </html>
